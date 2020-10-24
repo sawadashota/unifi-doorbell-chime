@@ -1,0 +1,68 @@
+:root {
+  --white: #fff;
+  --blue: #0070f3;
+  --red: #c50016;
+  --gray: #383838;
+}
+
+body {
+  font-family: "AXIS Font Japanese W55", "Gotham Book", -apple-system, sans-serif;
+  color: var(--gray);
+}
+
+img {
+  max-width: 100%;
+}
+
+.button {
+  transition-duration: 200ms;
+  border-radius: 8px;
+  padding: 12px 36px;
+  border: 1px solid;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+}
+
+.button.block {
+  display: block;
+  text-align: center;
+  width: 100%;
+}
+
+.button.blue {
+  color: var(--blue);
+  border-color: var(--blue);
+}
+
+.button.blue:hover,
+.button.blue.active {
+  color: var(--white);
+  border-color: var(--blue);
+  background-color: var(--blue);
+}
+
+.button.red {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+.button.red:hover,
+.button.red.active {
+  color: var(--white);
+  border-color: var(--red);
+  background-color: var(--red);
+}
+
+.button.gray {
+  color: var(--gray);
+  border-color: var(--gray);
+}
+
+.button.gray:hover,
+.button.gray.active {
+  color: var(--white);
+  border-color: var(--gray);
+  background-color: var(--gray);
+}
