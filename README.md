@@ -39,4 +39,6 @@ $ make build
 
 ### Via Brew
 
-TBW
+```
+$ brew install sawadashota/unifi-doorbell-chime/unifi-doorbell-chime
+```

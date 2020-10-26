@@ -1,0 +1,50 @@
+before:
+  hooks:
+    - go mod download
+    - npm ci --prefix web/frontend
+    - npm run build --prefix web/frontend
+builds:
+  - main: main.go
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+archives:
+  - replacements:
+      darwin: Darwin
+      amd64: x86_64
+    files:
+      - assets
+      - README.md
+checksum:
+  name_template: 'checksums.txt'
+release:
+  prerelease: auto
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - Merge pull request
+      - Merge branch
+
+brews:
+  -
+    # GitHub/GitLab repository to push the formula to
+    tap:
+      owner: sawadashota
+      name: homebrew-unifi-doorbell-chime
+
+    url_template: https://github.com/sawadashota/unifi-doorbell-chime/releases/download/{{ .Tag }}/{{ .ArtifactName }}
+    commit_author:
+      name: "Shota Sawada"
+      email: shota@sslife.tech
+
+    homepage: "https://github.com/sawadashota/unifi-doorbell-chime"
+    description: "Notify to Mac when Doorbell rung."
+    skip_upload: false
+    install: |
+      bin.install "unifi-doorbell-chime"
