@@ -9,7 +9,6 @@ type Provider interface {
 	UnifiPassword() string
 
 	NotificationIcon() string
-	NotificationContentImage() string
 
 	WebPort() uint64
 	ApiPort() uint64

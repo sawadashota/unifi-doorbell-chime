@@ -127,14 +127,14 @@ func init() {
 		"config",
 		"c",
 		"",
-		"Config file. Default is $HOME/.unifi-proto-chime.yaml",
+		"Config file. Default is $HOME/.unifi-doorbell-chime.yaml",
 	)
 	cobra.OnInitialize(initConfig)
 }
 
 func initConfig() {
 	if configFile == "" {
-		configFile = filepath.Join(os.Getenv("HOME"), ".unifi-proto-chime.yaml")
+		configFile = filepath.Join(os.Getenv("HOME"), ".unifi-doorbell-chime.yaml")
 		if _, err := os.Stat(configFile); err != nil {
 			if err := createSampleConfig(configFile); err != nil {
 				fmt.Println(err)

@@ -35,7 +35,6 @@ type Registry interface {
 
 type Configuration interface {
 	NotificationIcon() string
-	NotificationContentImage() string
 	WebPort() uint64
 }
 
@@ -136,9 +135,6 @@ func (h *PollingStrategy) notify(doorbell *unifi.Doorbell) error {
 	note.Link = fmt.Sprintf("http://127.0.0.1:%d/ringing/%s", h.c.WebPort(), doorbell.ID)
 	if h.c.NotificationIcon() != "" {
 		note.AppIcon = h.c.NotificationIcon()
-	}
-	if h.c.NotificationContentImage() != "" {
-		note.ContentImage = h.c.NotificationContentImage()
 	}
 	return note.Push()
 }

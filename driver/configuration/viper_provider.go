@@ -16,8 +16,7 @@ const (
 	viperUnifiUsername      = "unifi.username"
 	viperUnifiPassword      = "unifi.password"
 
-	viperNotificationIcon         = "notification.icon"
-	viperNotificationContentImage = "notification.content_image"
+	viperNotificationIcon = "notification.icon"
 
 	viperWebPort = "proto.port"
 	viperApiPort = "api.port"
@@ -75,10 +74,6 @@ func (v *ViperProvider) UnifiPassword() string {
 
 func (v *ViperProvider) NotificationIcon() string {
 	return viper.GetString(viperNotificationIcon)
-}
-
-func (v *ViperProvider) NotificationContentImage() string {
-	return viper.GetString(viperNotificationContentImage)
 }
 
 func (v *ViperProvider) WebPort() uint64 {
