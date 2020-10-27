@@ -1,7 +1,11 @@
 name: Go
 
 on:
-  - push
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '*.*'
 
 jobs:
   golangci:

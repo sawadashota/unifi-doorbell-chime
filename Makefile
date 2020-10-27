@@ -3,21 +3,23 @@ SHELL := /bin/bash
 
 GO := go
 GOTEST := $(or $(GOTEST),$(GO) test)
-CONFIG_FILE := $(or ${CONFIG_FILE}, "config.yaml")
+CONFIG_FILE := $(or ${CONFIG_FILE}, "contrib/config.yaml")
 BINARY_FILE := unifi-doorbell-chime
 
 NPM := npm
 NPM_PREFIX := web/frontend
 
 dev: web/build ## start dev
-	$(GO) run main.go --config $(CONFIG_FILE)
+	$(GO) run main.go start --config $(CONFIG_FILE)
 
-build: web/build ## build for production
+prebuild: web/build ## pre build
 	packr2
+
+build: prebuild ## build for production
 	$(GO) build -o $(BINARY_FILE) .
 
 start: build ## exec built binary
-	./$(BINARY_FILE) --config $(CONFIG_FILE)
+	./$(BINARY_FILE) start --config $(CONFIG_FILE)
 
 web/build: ## build web frontend
 	$(NPM) run build --prefix $(NPM_PREFIX)

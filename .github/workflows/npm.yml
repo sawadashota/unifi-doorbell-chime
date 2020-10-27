@@ -1,7 +1,11 @@
 name: NPM
 
 on:
-  - push
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '*.*'
 
 defaults:
   run:
