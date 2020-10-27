@@ -3,7 +3,7 @@ SHELL := /bin/bash
 
 GO := go
 GOTEST := $(or $(GOTEST),$(GO) test)
-CONFIG_FILE := $(or ${CONFIG_FILE}, ".unifi-doorbell-chime.yaml")
+CONFIG_FILE := $(or ${CONFIG_FILE}, "config.yaml")
 BINARY_FILE := unifi-doorbell-chime
 
 NPM := npm
@@ -13,6 +13,7 @@ dev: web/build ## start dev
 	$(GO) run main.go --config $(CONFIG_FILE)
 
 build: web/build ## build for production
+	packr2
 	$(GO) build -o $(BINARY_FILE) .
 
 start: build ## exec built binary
@@ -22,11 +23,13 @@ web/build: ## build web frontend
 	$(NPM) run build --prefix $(NPM_PREFIX)
 
 clean: ## clean built and dependencies
+	packr2 clean
 	rm $(BINARY_FILE)
 	rm -rf ./web/node_modules ./web/build
 
 install: ## install dependencies
 	$(GO) mod download -x
+	$(GO) install github.com/gobuffalo/packr/v2/packr2
 	$(NPM) install --prefix $(NPM_PREFIX)
 
 test : go/test npm/test ## Run all tests

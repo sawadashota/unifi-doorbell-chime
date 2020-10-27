@@ -1,8 +1,7 @@
 before:
   hooks:
-    - go mod download
-    - npm ci --prefix web/frontend
-    - npm run build --prefix web/frontend
+    - make install
+    - make web/build
 builds:
   - main: main.go
     env:
@@ -48,3 +47,6 @@ brews:
     skip_upload: false
     install: |
       bin.install "unifi-doorbell-chime"
+      mkdir $HOME/.unifi-doorbell-chime
+      cp config.sample.yaml $HOME/.unifi-doorbell-chime/config.yaml
+      cp assets $HOME/.unifi-doorbell-chime/assets

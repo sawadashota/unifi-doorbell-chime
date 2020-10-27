@@ -1,6 +1,9 @@
 package configuration
 
 import (
+	"os"
+	"path/filepath"
+
 	"github.com/spf13/viper"
 )
 
@@ -73,7 +76,10 @@ func (v *ViperProvider) UnifiPassword() string {
 }
 
 func (v *ViperProvider) NotificationIcon() string {
-	return viper.GetString(viperNotificationIcon)
+	return getString(
+		viperNotificationIcon,
+		filepath.Join(os.Getenv("HOME"), ".unifi-doorbell-chime/assets/AppIcon.png"),
+	)
 }
 
 func (v *ViperProvider) WebPort() uint64 {

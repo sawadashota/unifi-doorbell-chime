@@ -1,4 +1,6 @@
-.unifi-doorbell-chime.yaml
+config.yaml
 unifi-doorbell-chime
 
 /bin/
+
+*-packr.go
