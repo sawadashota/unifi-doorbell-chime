@@ -32,7 +32,7 @@ func (c *Client) request(ctx context.Context, method string, u *url.URL, body io
 	req.Header = c.header
 
 	res, err := func() (*http.Response, error) {
-		req.WithContext(ctx)
+		req = req.WithContext(ctx)
 		respCh := make(chan *http.Response)
 		errCh := make(chan error)
 

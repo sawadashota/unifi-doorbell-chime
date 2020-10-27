@@ -55,7 +55,8 @@ var rootCmd = &cobra.Command{
 		select {
 		case <-sigCh:
 			var eg errgroup.Group
-			ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
 			eg.Go(func() error {
 				return d.Registry().Listener().Shutdown(ctx)
 			})
@@ -70,7 +71,8 @@ var rootCmd = &cobra.Command{
 			}
 		case err := <-listenerErrCh:
 			var eg errgroup.Group
-			ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
 			eg.Go(func() error {
 				return d.Registry().WebFrontendServer().Shutdown(ctx)
 			})
@@ -83,7 +85,8 @@ var rootCmd = &cobra.Command{
 			d.Registry().Logger().Error(err)
 		case err := <-webFrontendErrCh:
 			var eg errgroup.Group
-			ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
 			eg.Go(func() error {
 				return d.Registry().Listener().Shutdown(ctx)
 			})
@@ -96,7 +99,8 @@ var rootCmd = &cobra.Command{
 			d.Registry().Logger().Error(err)
 		case err := <-webApiErrCh:
 			var eg errgroup.Group
-			ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
 			eg.Go(func() error {
 				return d.Registry().Listener().Shutdown(ctx)
 			})
