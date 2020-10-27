@@ -42,9 +42,11 @@ func New(r Registry, c Configuration) (Strategy, error) {
 	logger := r.AppLogger("listener")
 	logger.Debug("start polling...")
 
+	//nolint:govet
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	doorbells, err := r.UnifiClient().GetDoorbells(ctx)
 	if err != nil {
+		//nolint:govet
 		return nil, errors.WithStack(err)
 	}
 

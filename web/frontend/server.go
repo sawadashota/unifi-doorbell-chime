@@ -56,7 +56,6 @@ func (s *Server) handleWellKnownConfiguration(w http.ResponseWriter, _ *http.Req
 	}
 	w.Header().Add("Content-Type", "application/json")
 	_, _ = w.Write(buf.Bytes())
-	return
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {

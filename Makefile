@@ -43,6 +43,17 @@ npm/test: ## run npm test
 npm/dev: ## start npm dev server
 	$(NPM) start --prefix $(NPM_PREFIX)
 
+lint: go/lint npm/lint ## check lint
+
+go/lint: ## check lint Go code
+	golangci-lint run
+
+npm/lint: ## check lint node code
+	$(NPM) run lint --prefix $(NPM_PREFIX)
+
+npm/format: ## format node code
+	$(NPM) run format --prefix $(NPM_PREFIX)
+
 # https://gist.github.com/tadashi-aikawa/da73d277a3c1ec6767ed48d1335900f3
 .PHONY: $(shell grep -h -E '^[a-zA-Z_-]+:' $(MAKEFILE_LIST) | sed 's/://')
 
