@@ -30,5 +30,5 @@ Installation
 ---
 
 ```
-$ brew install sawadashota/unifi-doorbell-chime/unifi-doorbell-chime
+$ brew install sawadashota/tap/unifi-doorbell-chime
 ```

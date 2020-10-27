@@ -36,7 +36,7 @@ brews:
     # GitHub/GitLab repository to push the formula to
     tap:
       owner: sawadashota
-      name: homebrew-unifi-doorbell-chime
+      name: homebrew-tap
 
     url_template: https://github.com/sawadashota/unifi-doorbell-chime/releases/download/{{ .Tag }}/{{ .ArtifactName }}
     commit_author:
@@ -48,6 +48,8 @@ brews:
     skip_upload: false
     install: |
       bin.install "unifi-doorbell-chime"
-      mkdir $HOME/.unifi-doorbell-chime
-      cp config.sample.yaml $HOME/.unifi-doorbell-chime/config.yaml
-      cp assets $HOME/.unifi-doorbell-chime/assets
+      Dir.mkdir(Dir.home + '/.unifi-doorbell-chime')
+
+      require 'fileutils'
+      FileUtils.cp('config.sample.yaml', Dir.home + '/.unifi-doorbell-chime/config.yaml')
+      FileUtils.cp_r('assets', Dir.home + '/.unifi-doorbell-chime/assets')
