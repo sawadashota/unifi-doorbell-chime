@@ -15,6 +15,7 @@ archives:
     files:
       - assets
       - README.md
+      - config.sample.yaml
 checksum:
   name_template: 'checksums.txt'
 release:

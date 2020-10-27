@@ -6,7 +6,7 @@ Notify to Mac when Doorbell is rung.
 Getting Started
 ---
 
-Put config file `$HOME/.unifi-doorbell-chime.yaml` and edit all property of following.
+Put config file `$HOME/.unifi-doorbell-chime/config.yaml` and edit all property of following.
 
 ```yaml
 unifi:
@@ -28,16 +28,6 @@ $ unifi-doorbell-chime
 
 Installation
 ---
-
-### Build From Source
-
-```
-$ git pull https://github.com/sawadashota/unifi-doorbell-chime.git
-$ make install
-$ make build
-```
-
-### Via Brew
 
 ```
 $ brew install sawadashota/unifi-doorbell-chime/unifi-doorbell-chime
