@@ -10,6 +10,7 @@ archives:
   - replacements:
       darwin: Darwin
       amd64: x86_64
+    name_template: "{{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - README.md
 checksum:
@@ -42,6 +43,33 @@ brews:
     homepage: "https://github.com/sawadashota/unifi-doorbell-chime"
     description: "Notify to Mac when Doorbell rung."
     skip_upload: false
+    plist: |
+      <?xml version="1.0" encoding="UTF-8"?>
+      <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+      <plist version="1.0">
+        <dict>
+          <key>KeepAlive</key>
+          <dict>
+            <key>SuccessfulExit</key>
+            <false/>
+          </dict>
+          <key>Label</key>
+          <string>#{plist_name}</string>
+          <key>ProgramArguments</key>
+          <array>
+            <string>#{opt_bin}/unifi-doorbell-chime</string>
+            <string>start</string>
+          </array>
+          <key>RunAtLoad</key>
+          <true/>
+          <key>WorkingDirectory</key>
+          <string>#{var}</string>
+          <key>StandardErrorPath</key>
+          <string>#{var}/log/unifi-doorbell-chime.log</string>
+          <key>StandardOutPath</key>
+          <string>#{var}/log/unifi-doorbell-chime.log</string>
+        </dict>
+      </plist>
     install: |
       bin.install "unifi-doorbell-chime"
       puts
