@@ -30,7 +30,6 @@ changelog:
 
 brews:
   -
-    # GitHub/GitLab repository to push the formula to
     tap:
       owner: sawadashota
       name: homebrew-tap
@@ -70,12 +69,7 @@ brews:
           <string>#{var}/log/unifi-doorbell-chime.log</string>
         </dict>
       </plist>
+    test: |
+      system "#{bin}/unifi-doorbell-chime --version"
     install: |
       bin.install "unifi-doorbell-chime"
-      puts
-      puts "please exec init command"
-      puts
-      puts
-      puts "$ unifi-doorbell-chime init"
-      puts
-      puts

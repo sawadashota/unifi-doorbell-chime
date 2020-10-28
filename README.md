@@ -16,6 +16,8 @@ Then exec command.
 
 ```
 $ unifi-doorbell-chime start
+or
+$ brew services start sawadashota/tap/unifi-doorbell-chime
 ```
 
 Installation
