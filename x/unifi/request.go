@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -24,12 +25,14 @@ func (e *HttpError) Error() string {
 	return fmt.Sprintf("message: %s. code: %d. url: %s", e.message, e.code, e.url.String())
 }
 
+const defaultRequestTimeout = 3 * time.Second
+
 func (c *Client) request(ctx context.Context, method string, u *url.URL, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(method, u.String(), body)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	req.Header = c.header
+	req.Header = c.authenticatedHeader
 
 	res, err := func() (*http.Response, error) {
 		req = req.WithContext(ctx)
@@ -54,11 +57,22 @@ func (c *Client) request(ctx context.Context, method string, u *url.URL, body io
 			return nil, err
 
 		case <-ctx.Done():
-			return nil, errors.New("HTTP jsonRequest cancelled")
+			return nil, errors.New("HTTP request cancelled")
 		}
 	}()
 	if err != nil {
 		return nil, errors.WithStack(err)
+	}
+
+	if res.StatusCode == http.StatusUnauthorized {
+		c.authenticatedHeader = nil
+
+		c.logger.Info("try re authentication")
+		if err := c.Authenticate(); err == nil {
+			c.logger.Info("re authenticated successfully")
+			return c.request(ctx, method, u, body)
+		}
+		c.logger.Error("failed to re authenticated")
 	}
 
 	return res, nil
@@ -72,7 +86,10 @@ func (c *Client) jsonRequest(ctx context.Context, method string, u *url.URL, par
 		}
 	}
 
-	res, err := c.request(ctx, method, u, buf)
+	timeoutCtx, cancelFunc := context.WithTimeout(ctx, defaultRequestTimeout)
+	defer cancelFunc()
+
+	res, err := c.request(timeoutCtx, method, u, buf)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -91,7 +108,7 @@ func (c *Client) jsonRequest(ctx context.Context, method string, u *url.URL, par
 		}
 		c.logger.Warnf(err.Error())
 		body, _ := ioutil.ReadAll(res.Body)
-		c.logger.Debugln(body)
+		c.logger.Debugln(string(body))
 		return err
 	}
 

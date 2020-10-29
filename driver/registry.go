@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/sawadashota/unifi-doorbell-chime/driver/configuration"
 	"github.com/sawadashota/unifi-doorbell-chime/listener"
 	"github.com/sawadashota/unifi-doorbell-chime/web/api"
@@ -28,43 +27,16 @@ type DefaultRegistry struct {
 	uc *unifi.Client
 	ls listener.Strategy
 	c  configuration.Provider
-	ws *frontend.Server
-	wa *api.Server
+	fs *frontend.Server
+	as *api.Server
 }
 
 var _ Registry = new(DefaultRegistry)
 
-func NewDefaultRegistry(config configuration.Provider) (Registry, error) {
-	var err error
-	httpclient := http.DefaultClient
-
-	if config.UnifiSkipTLSVerify() {
-		transport := http.DefaultTransport.(*http.Transport).Clone()
-		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-		httpclient = &http.Client{
-			Transport: transport,
-		}
-	}
-
-	r := &DefaultRegistry{
+func NewDefaultRegistry(config configuration.Provider) Registry {
+	return &DefaultRegistry{
 		c: config,
 	}
-
-	r.uc, err = unifi.NewClient(r, config, httpclient)
-
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	r.ls, err = listener.New(r, config)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	r.ws = frontend.New(r, config)
-	r.wa = api.New(r, config)
-
-	return r, nil
 }
 
 func (d *DefaultRegistry) Logger() logrus.FieldLogger {
@@ -91,17 +63,39 @@ func (d *DefaultRegistry) AppLogger(app string) logrus.FieldLogger {
 }
 
 func (d *DefaultRegistry) UnifiClient() *unifi.Client {
+	if d.uc == nil {
+		httpclient := http.DefaultClient
+
+		if d.c.UnifiSkipTLSVerify() {
+			transport := http.DefaultTransport.(*http.Transport).Clone()
+			transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+			httpclient = &http.Client{
+				Transport: transport,
+			}
+		}
+
+		d.uc = unifi.NewClient(d, d.c, httpclient)
+	}
 	return d.uc
 }
 
 func (d *DefaultRegistry) Listener() listener.Strategy {
+	if d.ls == nil {
+		d.ls = listener.New(d, d.c)
+	}
 	return d.ls
 }
 
 func (d *DefaultRegistry) WebFrontendServer() *frontend.Server {
-	return d.ws
+	if d.fs == nil {
+		d.fs = frontend.New(d, d.c)
+	}
+	return d.fs
 }
 
 func (d *DefaultRegistry) WebApiServer() *api.Server {
-	return d.wa
+	if d.as == nil {
+		d.as = api.New(d, d.c)
+	}
+	return d.as
 }
