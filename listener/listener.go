@@ -78,11 +78,13 @@ func (h *PollingStrategy) Start() error {
 	}()
 
 	if err := h.r.UnifiClient().Authenticate(); err != nil {
+		h.logger.Error(err)
 		return errors.WithStack(err)
 	}
 
 	doorbells, err := h.r.UnifiClient().GetDoorbells(h.ctx)
 	if err != nil {
+		h.logger.Error(err)
 		return errors.WithStack(err)
 	}
 
@@ -99,6 +101,7 @@ func (h *PollingStrategy) Start() error {
 
 		case <-ticker.C:
 			if err := h.poll(h.ctx); err != nil {
+				h.logger.Error(err)
 				return errors.WithStack(err)
 			}
 		}

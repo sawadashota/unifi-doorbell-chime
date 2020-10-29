@@ -32,9 +32,6 @@ func New(r Registry, c Configuration) *Server {
 		r:      r,
 		c:      c,
 		logger: r.AppLogger("api"),
-		svr: &http.Server{
-			Addr: fmt.Sprintf(":%d", c.ApiPort()),
-		},
 	}
 }
 
@@ -45,10 +42,17 @@ func (s *Server) Start() error {
 	m.HandleFunc("/snapshot/{doorbellID}", s.getSnapshot).Methods(http.MethodGet)
 	m.HandleFunc("/message/set", s.setMessage).Methods(http.MethodPost)
 	m.HandleFunc("/message/templates", s.messageTemplateList).Methods(http.MethodGet)
-	s.svr.Handler = m
+	s.svr = &http.Server{
+		Addr:    fmt.Sprintf(":%d", s.c.ApiPort()),
+		Handler: m,
+	}
 
 	s.logger.Infof("start API server. 127.0.0.1:%d", s.c.ApiPort())
-	return s.svr.ListenAndServe()
+	if err := s.svr.ListenAndServe(); err != nil {
+		s.logger.Error(err)
+		return err
+	}
+	return nil
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
