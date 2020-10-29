@@ -37,9 +37,6 @@ func New(r Registry, c Configuration) *Server {
 		r:      r,
 		c:      c,
 		static: packr.New("static files", "./build"),
-		svr: &http.Server{
-			Addr: fmt.Sprintf(":%d", c.WebPort()),
-		},
 		logger: r.AppLogger("frontend"),
 	}
 }
@@ -80,8 +77,15 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) Start() error {
 	s.logger.Infof("start frontend server. 127.0.0.1:%d", s.c.WebPort())
-	s.svr.Handler = s
-	return s.svr.ListenAndServe()
+	s.svr = &http.Server{
+		Addr:    fmt.Sprintf(":%d", s.c.WebPort()),
+		Handler: s,
+	}
+	if err := s.svr.ListenAndServe(); err != nil {
+		s.logger.Error(err)
+		return err
+	}
+	return nil
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
