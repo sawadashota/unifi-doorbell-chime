@@ -21,10 +21,12 @@ const (
 
 	viperNotificationIcon = "notification.icon"
 
-	viperWebPort = "proto.port"
+	viperWebPort = "web.port"
 	viperApiPort = "api.port"
 
 	viperMessageTemplates = "message.templates"
+
+	viperBootOptionMacAddress = "boot_option.mac_address"
 )
 
 func getString(key string, defaultValue string) string {
@@ -92,4 +94,8 @@ func (v *ViperProvider) ApiPort() uint64 {
 
 func (v *ViperProvider) MessageList() []string {
 	return viper.GetStringSlice(viperMessageTemplates)
+}
+
+func (v *ViperProvider) BootOptionMacAddress() string {
+	return viper.GetString(viperBootOptionMacAddress)
 }

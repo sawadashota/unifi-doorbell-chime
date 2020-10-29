@@ -16,6 +16,9 @@ unifi:
   username: "username"
   password: "password"
 
+#boot_option:
+#  mac_address: 00:00:00:00:00:00
+
 message:
   templates:
     - "I'm on my way"

@@ -1,7 +1,6 @@
 package driver
 
 import (
-	"github.com/pkg/errors"
 	"github.com/sawadashota/unifi-doorbell-chime/driver/configuration"
 )
 
@@ -25,14 +24,11 @@ func (d *DefaultDriver) Configuration() configuration.Provider {
 	return d.c
 }
 
-func NewDefaultDriver() (Driver, error) {
+func NewDefaultDriver() Driver {
 	c := configuration.NewViperProvider()
-	r, err := NewDefaultRegistry(c)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
+
 	return &DefaultDriver{
 		c: c,
-		r: r,
-	}, nil
+		r: NewDefaultRegistry(c),
+	}
 }

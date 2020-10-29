@@ -38,30 +38,12 @@ type Configuration interface {
 	WebPort() uint64
 }
 
-func New(r Registry, c Configuration) (Strategy, error) {
-	logger := r.AppLogger("listener")
-	logger.Debug("start polling...")
-
-	//nolint:govet
-	ctx, cancelFunc := context.WithCancel(context.Background())
-	doorbells, err := r.UnifiClient().GetDoorbells(ctx)
-	if err != nil {
-		//nolint:govet
-		return nil, errors.WithStack(err)
-	}
-
-	for _, d := range doorbells {
-		logger.Infof("activate %s ID: %s\n", d.Name, d.ID)
-	}
-
+func New(r Registry, c Configuration) Strategy {
 	return &PollingStrategy{
-		r:          r,
-		c:          c,
-		ctx:        ctx,
-		cancelFunc: cancelFunc,
-		state:      doorbells,
-		logger:     logger,
-	}, nil
+		r:      r,
+		c:      c,
+		logger: r.AppLogger("listener"),
+	}
 }
 
 func (h *PollingStrategy) poll(ctx context.Context) error {
@@ -85,15 +67,28 @@ func (h *PollingStrategy) poll(ctx context.Context) error {
 	return nil
 }
 
-var pollingInterval = 1 * time.Second
+const pollingInterval = 1 * time.Second
 
 func (h *PollingStrategy) Start() error {
-	ctx, cancel := context.WithCancel(context.Background())
+	h.ctx, h.cancelFunc = context.WithCancel(context.Background())
 	defer func() {
-		cancel()
+		h.cancelFunc()
 		h.logger.Info("Bye!")
 		h.isComplete = true
 	}()
+
+	if err := h.r.UnifiClient().Authenticate(); err != nil {
+		return errors.WithStack(err)
+	}
+
+	doorbells, err := h.r.UnifiClient().GetDoorbells(h.ctx)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	for _, d := range doorbells {
+		h.logger.Infof("activate %s ID: %s\n", d.Name, d.ID)
+	}
 
 	ticker := time.NewTicker(pollingInterval)
 
@@ -103,7 +98,7 @@ func (h *PollingStrategy) Start() error {
 			return nil
 
 		case <-ticker.C:
-			if err := h.poll(ctx); err != nil {
+			if err := h.poll(h.ctx); err != nil {
 				return errors.WithStack(err)
 			}
 		}

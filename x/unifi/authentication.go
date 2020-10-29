@@ -9,10 +9,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *Client) ReAuthenticate() error {
-	return c.Authenticate()
-}
-
 func (c *Client) Authenticate() error {
 	u := c.baseURL()
 	u.Path = "/api/auth"
@@ -43,14 +39,14 @@ func (c *Client) Authenticate() error {
 
 	token := res.Header.Get("Authorization")
 	if token == "" {
-		return errors.New("could not get Authorization header from acquireCookie response header")
+		return errors.New("could not get Authorization Header from acquireCookie response authenticatedHeader")
 	}
 
 	header := make(http.Header)
 	header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 	header.Add("Content-Type", "application/json")
 
-	c.header = header
+	c.authenticatedHeader = header
 
 	c.logger.Debugln("logged in to unifi")
 	return nil

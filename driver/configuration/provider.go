@@ -14,4 +14,6 @@ type Provider interface {
 	ApiPort() uint64
 
 	MessageList() []string
+
+	BootOptionMacAddress() string
 }

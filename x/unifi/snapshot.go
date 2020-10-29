@@ -12,7 +12,10 @@ func (c *Client) GetSnapshot(ctx context.Context, doorbellID string) ([]byte, er
 	u := c.baseURL()
 	u.Path = "/api/cameras/" + doorbellID + "/snapshot"
 
-	res, err := c.request(ctx, http.MethodGet, u, nil)
+	timeoutCtx, cancelFunc := context.WithTimeout(ctx, defaultRequestTimeout)
+	defer cancelFunc()
+
+	res, err := c.request(timeoutCtx, http.MethodGet, u, nil)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
