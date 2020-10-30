@@ -3,9 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-
-	"github.com/sawadashota/unifi-doorbell-chime/assets"
 
 	"github.com/spf13/cobra"
 )
@@ -35,9 +32,6 @@ var initCmd = &cobra.Command{
 		if err := generateConfigFile(); err != nil {
 			return err
 		}
-		if err := copyAssets(); err != nil {
-			return err
-		}
 
 		fmt.Printf("created %s successfully\n\n", configDir())
 		fmt.Printf("$ vi %s\n\n", configFilePath())
@@ -65,24 +59,6 @@ func generateConfigFile() error {
 	defer file.Close()
 
 	_, err = fmt.Fprint(file, configTemplate)
-	return err
-}
-
-func copyAssets() error {
-	dir := filepath.Join(configDir(), "assets")
-	if err := os.MkdirAll(dir, 0775); err != nil {
-		return fmt.Errorf("failed to create directory at %s. %s\n", configDir(), err)
-	}
-	icon := assets.New().AppIcon()
-
-	dest := filepath.Join(dir, "AppIcon.png")
-	file, err := os.OpenFile(dest, os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		return fmt.Errorf("failed to put assets at %s. %s", dest, err)
-	}
-	defer file.Close()
-
-	_, err = file.Write(icon)
 	return err
 }
 

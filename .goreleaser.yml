@@ -4,13 +4,15 @@ builds:
       - CGO_ENABLED=0
     goos:
       - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm
     ldflags:
       - "-s -w -X github.com/sawadashota/unifi-doorbell-chime/cmd.Version={{.Version}}"
 archives:
-  - replacements:
-      darwin: Darwin
-      amd64: x86_64
-    name_template: "{{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  - name_template: "{{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - README.md
 checksum:
@@ -29,8 +31,7 @@ changelog:
       - Merge branch
 
 brews:
-  -
-    tap:
+  - tap:
       owner: sawadashota
       name: homebrew-tap
 

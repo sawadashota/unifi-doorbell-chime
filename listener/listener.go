@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	gosxnotifier "github.com/deckarep/gosx-notifier"
+	"github.com/pkg/browser"
 	"github.com/pkg/errors"
 	"github.com/sawadashota/unifi-doorbell-chime/x/unifi"
 	"github.com/sirupsen/logrus"
@@ -34,7 +34,6 @@ type Registry interface {
 }
 
 type Configuration interface {
-	NotificationIcon() string
 	WebPort() uint64
 }
 
@@ -46,62 +45,61 @@ func New(r Registry, c Configuration) Strategy {
 	}
 }
 
-func (h *PollingStrategy) poll(ctx context.Context) error {
-	ds, err := h.r.UnifiClient().GetDoorbells(ctx)
+func (s *PollingStrategy) poll(ctx context.Context) error {
+	ds, err := s.r.UnifiClient().GetDoorbells(ctx)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
 	for _, d := range ds {
-		if d.DoesRung(h.state) {
-			_ = h.r.UnifiClient().SetMessage(ctx, d.ID, "呼び出し中・・・", 30*time.Second)
-			if err := h.notify(&d); err != nil {
+		if d.DoesRung(s.state) {
+			if err := s.openURL(&d); err != nil {
 				return errors.WithStack(err)
 			}
 
-			h.logger.Infof("%s (%s) is rung!\n", d.Name, d.Mac)
+			s.logger.Infof("%s (%s) is rung!\n", d.Name, d.Mac)
 		}
 	}
 
-	h.state = ds
+	s.state = ds
 	return nil
 }
 
 const pollingInterval = 1 * time.Second
 
-func (h *PollingStrategy) Start() error {
-	h.ctx, h.cancelFunc = context.WithCancel(context.Background())
+func (s *PollingStrategy) Start() error {
+	s.ctx, s.cancelFunc = context.WithCancel(context.Background())
 	defer func() {
-		h.cancelFunc()
-		h.logger.Info("Bye!")
-		h.isComplete = true
+		s.cancelFunc()
+		s.logger.Info("Bye!")
+		s.isComplete = true
 	}()
 
-	if err := h.r.UnifiClient().Authenticate(); err != nil {
-		h.logger.Error(err)
+	if err := s.r.UnifiClient().Authenticate(); err != nil {
+		s.logger.Error(err)
 		return errors.WithStack(err)
 	}
 
-	doorbells, err := h.r.UnifiClient().GetDoorbells(h.ctx)
+	doorbells, err := s.r.UnifiClient().GetDoorbells(s.ctx)
 	if err != nil {
-		h.logger.Error(err)
+		s.logger.Error(err)
 		return errors.WithStack(err)
 	}
 
 	for _, d := range doorbells {
-		h.logger.Infof("activate %s ID: %s\n", d.Name, d.ID)
+		s.logger.Infof("activate %s ID: %s\n", d.Name, d.ID)
 	}
 
 	ticker := time.NewTicker(pollingInterval)
 
 	for {
 		select {
-		case <-h.ctx.Done():
+		case <-s.ctx.Done():
 			return nil
 
 		case <-ticker.C:
-			if err := h.poll(h.ctx); err != nil {
-				h.logger.Error(err)
+			if err := s.poll(s.ctx); err != nil {
+				s.logger.Error(err)
 				return errors.WithStack(err)
 			}
 		}
@@ -110,14 +108,14 @@ func (h *PollingStrategy) Start() error {
 
 var shutdownPollInterval = 500 * time.Millisecond
 
-func (h *PollingStrategy) Shutdown(ctx context.Context) error {
+func (s *PollingStrategy) Shutdown(ctx context.Context) error {
 	ticker := time.NewTicker(shutdownPollInterval)
 
 	defer ticker.Stop()
 
-	h.cancelFunc()
+	s.cancelFunc()
 	for {
-		if h.isComplete {
+		if s.isComplete {
 			return nil
 		}
 		select {
@@ -128,13 +126,8 @@ func (h *PollingStrategy) Shutdown(ctx context.Context) error {
 	}
 }
 
-func (h *PollingStrategy) notify(doorbell *unifi.Doorbell) error {
-	note := gosxnotifier.NewNotification("Someone at the door")
-	note.Title = doorbell.Name
-	note.Sound = gosxnotifier.Glass
-	note.Link = fmt.Sprintf("http://127.0.0.1:%d/ringing/%s", h.c.WebPort(), doorbell.ID)
-	if h.c.NotificationIcon() != "" {
-		note.AppIcon = h.c.NotificationIcon()
-	}
-	return note.Push()
+func (s *PollingStrategy) openURL(doorbell *unifi.Doorbell) error {
+	return browser.OpenURL(
+		fmt.Sprintf("http://127.0.0.1:%d/ringing/%s", s.c.WebPort(), doorbell.ID),
+	)
 }
