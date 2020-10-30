@@ -7,9 +7,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/sawadashota/unifi-doorbell-chime/x/unifi"
-
 	"github.com/gobuffalo/packr/v2"
+	"github.com/sawadashota/unifi-doorbell-chime/x/unifi"
 	"github.com/sirupsen/logrus"
 )
 
@@ -17,7 +16,6 @@ type Server struct {
 	r      Registry
 	c      Configuration
 	static *packr.Box
-	svr    *http.Server
 	logger logrus.FieldLogger
 }
 
@@ -75,20 +73,25 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusInternalServerError)
 }
 
-func (s *Server) Start() error {
-	s.logger.Infof("start frontend server. 127.0.0.1:%d", s.c.WebPort())
-	s.svr = &http.Server{
+func (s *Server) Start(ctx context.Context) error {
+	svr := &http.Server{
 		Addr:    fmt.Sprintf(":%d", s.c.WebPort()),
 		Handler: s,
 	}
-	if err := s.svr.ListenAndServe(); err != nil {
-		s.logger.Error(err)
+
+	errCh := make(chan error, 1)
+	go func() {
+		s.logger.Infof("start frontend server. 127.0.0.1:%d", s.c.WebPort())
+		if err := svr.ListenAndServe(); err != nil {
+			errCh <- err
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		s.logger.Info("Bye!")
+		return svr.Shutdown(ctx)
+	case err := <-errCh:
 		return err
 	}
-	return nil
-}
-
-func (s *Server) Shutdown(ctx context.Context) error {
-	s.logger.Info("Bye!")
-	return s.svr.Shutdown(ctx)
 }

@@ -8,12 +8,13 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/pkg/errors"
 	"github.com/sawadashota/unifi-doorbell-chime/driver"
 	"github.com/sawadashota/unifi-doorbell-chime/x/wifimac"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"golang.org/x/sync/errgroup"
 )
 
 var runCmd = &cobra.Command{
@@ -36,20 +37,23 @@ var runCmd = &cobra.Command{
 		signal.Notify(sigCh, os.Interrupt)
 		signal.Notify(sigCh, syscall.SIGTERM)
 
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		errCh := make(chan error, 1)
-		go func() {
-			if d.Configuration().BootOptionMacAddress() != "" {
-				if err := i.bootWithMacAddressObservation(ctx); err != nil {
-					errCh <- err
-				}
-				return
-			}
-			if err := i.boot(ctx); err != nil {
-				errCh <- err
+		var eg errgroup.Group
+		defer func() {
+			if err := eg.Wait(); err != nil {
+				d.Registry().Logger().Error(err)
 			}
 		}()
+
+		ctx, cancel := context.WithCancel(cmd.Context())
+		defer cancel()
+
+		errCh := make(chan error, 1)
+		eg.Go(func() error {
+			if d.Configuration().BootOptionMacAddress() != "" {
+				return i.bootWithMacAddressObservation(ctx)
+			}
+			return i.boot(ctx)
+		})
 
 		select {
 		case <-sigCh:
@@ -73,16 +77,13 @@ func newInstance(d driver.Driver) *instance {
 
 func (i *instance) bootWithMacAddressObservation(ctx context.Context) error {
 	const checkMacAddressInterval = 1 * time.Minute
-
-	i.d.Registry().Logger().Infof("boot only when mac address is %s", i.d.Configuration().BootOptionMacAddress())
+	desired := i.d.Configuration().BootOptionMacAddress()
+	i.d.Registry().Logger().Infof("boot only when mac address is %s", desired)
 
 	for {
 		ma, err := wifimac.GetMacAddress()
 		if err != nil {
-			i.d.Registry().Logger().Infof(
-				"it seem no network connected. waiting until mac address to be %s",
-				i.d.Configuration().BootOptionMacAddress(),
-			)
+			i.d.Registry().Logger().Infof("it seem no network connected. waiting until mac address to be %s", desired)
 			time.Sleep(checkMacAddressInterval)
 			continue
 		}
@@ -95,7 +96,7 @@ func (i *instance) bootWithMacAddressObservation(ctx context.Context) error {
 			if err2 != nil {
 				i.d.Registry().Logger().Infof(
 					"listener stopped because no network connected. waiting until mac address to be %s",
-					i.d.Configuration().BootOptionMacAddress(),
+					desired,
 				)
 				time.Sleep(checkMacAddressInterval)
 				continue
@@ -108,105 +109,45 @@ func (i *instance) bootWithMacAddressObservation(ctx context.Context) error {
 			i.d.Registry().Logger().Infof(
 				"listener stopped because current mac address is %s. waiting to be %s",
 				ma2.String(),
-				i.d.Configuration().BootOptionMacAddress(),
+				desired,
 			)
 			time.Sleep(checkMacAddressInterval)
 			continue
 		}
 
-		i.d.Registry().Logger().Infof(
-			"current mac address is %s. waiting to be %s",
-			ma.String(),
-			i.d.Configuration().BootOptionMacAddress(),
-		)
+		i.d.Registry().Logger().Infof("current mac address is %s. waiting to be %s", ma.String(), desired)
 		time.Sleep(checkMacAddressInterval)
 	}
 }
 
 func (i *instance) boot(ctx context.Context) error {
-	listenerErrCh := make(chan error, 1)
-	go func() {
-		if err := i.d.Registry().Listener().Start(); err != nil {
-			listenerErrCh <- errors.Wrap(err, "unexpected error occurred")
+	var eg errgroup.Group
+	defer func() {
+		if err := eg.Wait(); err != nil {
+			i.d.Registry().Logger().Error(err)
 		}
 	}()
 
-	webFrontendErrCh := make(chan error, 1)
-	go func() {
-		if err := i.d.Registry().WebFrontendServer().Start(); err != nil {
-			webFrontendErrCh <- errors.Wrap(err, "unexpected error occurred")
-		}
-	}()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
-	webApiErrCh := make(chan error, 1)
-	go func() {
-		if err := i.d.Registry().WebApiServer().Start(); err != nil {
-			webApiErrCh <- errors.Wrap(err, "unexpected error occurred")
-		}
-	}()
+	errCh := make(chan error, len(i.d.Registry().Services()))
+	for _, svc := range i.d.Registry().Services() {
+		s := svc
+		eg.Go(func() error {
+			if err := s.Start(ctx); err != nil {
+				errCh <- err
+				return err
+			}
+			return nil
+		})
+	}
 
 	select {
 	case <-ctx.Done():
-		var eg errgroup.Group
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
-		eg.Go(func() error {
-			return i.d.Registry().Listener().Shutdown(ctx)
-		})
-		eg.Go(func() error {
-			return i.d.Registry().WebFrontendServer().Shutdown(ctx)
-		})
-		eg.Go(func() error {
-			return i.d.Registry().WebApiServer().Shutdown(ctx)
-		})
-		if err := eg.Wait(); err != nil {
-			i.d.Registry().Logger().Error(err)
-		}
 		return errors.WithStack(ctx.Err())
-
-	case err := <-listenerErrCh:
-		var eg errgroup.Group
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
-		eg.Go(func() error {
-			return i.d.Registry().WebFrontendServer().Shutdown(ctx)
-		})
-		eg.Go(func() error {
-			return i.d.Registry().WebApiServer().Shutdown(ctx)
-		})
-		if err := eg.Wait(); err != nil {
-			i.d.Registry().Logger().Error(err)
-		}
-		return errors.WithStack(err)
-
-	case err := <-webFrontendErrCh:
-		var eg errgroup.Group
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
-		eg.Go(func() error {
-			return i.d.Registry().Listener().Shutdown(ctx)
-		})
-		eg.Go(func() error {
-			return i.d.Registry().WebApiServer().Shutdown(ctx)
-		})
-		if err := eg.Wait(); err != nil {
-			i.d.Registry().Logger().Error(err)
-		}
-		return errors.WithStack(err)
-
-	case err := <-webApiErrCh:
-		var eg errgroup.Group
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
-		eg.Go(func() error {
-			return i.d.Registry().Listener().Shutdown(ctx)
-		})
-		eg.Go(func() error {
-			return i.d.Registry().WebFrontendServer().Shutdown(ctx)
-		})
-		if err := eg.Wait(); err != nil {
-			i.d.Registry().Logger().Error(err)
-		}
+	case err := <-errCh:
+		cancel()
 		return errors.WithStack(err)
 	}
 }

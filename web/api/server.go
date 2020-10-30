@@ -14,7 +14,6 @@ type Server struct {
 	r      Registry
 	c      Configuration
 	logger logrus.FieldLogger
-	svr    *http.Server
 }
 
 type Registry interface {
@@ -35,27 +34,31 @@ func New(r Registry, c Configuration) *Server {
 	}
 }
 
-func (s *Server) Start() error {
+func (s *Server) Start(ctx context.Context) error {
 	m := mux.NewRouter()
 	m.Use(s.allowCORS)
 	m.Use(s.requestLogging)
 	m.HandleFunc("/snapshot/{doorbellID}", s.getSnapshot).Methods(http.MethodGet)
 	m.HandleFunc("/message/set", s.setMessage).Methods(http.MethodPost)
 	m.HandleFunc("/message/templates", s.messageTemplateList).Methods(http.MethodGet)
-	s.svr = &http.Server{
+	svr := &http.Server{
 		Addr:    fmt.Sprintf(":%d", s.c.ApiPort()),
 		Handler: m,
 	}
 
-	s.logger.Infof("start API server. 127.0.0.1:%d", s.c.ApiPort())
-	if err := s.svr.ListenAndServe(); err != nil {
-		s.logger.Error(err)
+	errCh := make(chan error, 1)
+	go func() {
+		s.logger.Infof("start API server. 127.0.0.1:%d", s.c.ApiPort())
+		if err := svr.ListenAndServe(); err != nil {
+			errCh <- err
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		s.logger.Info("Bye!")
+		return svr.Shutdown(ctx)
+	case err := <-errCh:
 		return err
 	}
-	return nil
-}
-
-func (s *Server) Shutdown(ctx context.Context) error {
-	s.logger.Info("Bye!")
-	return s.svr.Shutdown(ctx)
 }
