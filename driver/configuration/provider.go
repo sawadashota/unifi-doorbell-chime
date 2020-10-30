@@ -8,8 +8,6 @@ type Provider interface {
 	UnifiUsername() string
 	UnifiPassword() string
 
-	NotificationIcon() string
-
 	WebPort() uint64
 	ApiPort() uint64
 

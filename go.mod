@@ -3,7 +3,6 @@ module github.com/sawadashota/unifi-doorbell-chime
 go 1.15
 
 require (
-	github.com/deckarep/gosx-notifier v0.0.0-20180201035817-e127226297fb
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gobuffalo/packr/v2 v2.8.0
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
@@ -14,6 +13,7 @@ require (
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/pelletier/go-toml v1.8.1 // indirect
+	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
 	github.com/pkg/errors v0.9.1
 	github.com/rogpeppe/go-internal v1.6.2 // indirect
 	github.com/sirupsen/logrus v1.7.0
