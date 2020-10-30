@@ -1,6 +1,7 @@
 package driver
 
 import (
+	"context"
 	"crypto/tls"
 	"net/http"
 	"time"
@@ -17,15 +18,17 @@ type Registry interface {
 	Logger() logrus.FieldLogger
 	AppLogger(app string) logrus.FieldLogger
 	UnifiClient() *unifi.Client
-	Listener() listener.Strategy
-	WebFrontendServer() *frontend.Server
-	WebApiServer() *api.Server
+	Services() []Service
+}
+
+type Service interface {
+	Start(ctx context.Context) error
 }
 
 type DefaultRegistry struct {
 	l  logrus.FieldLogger
 	uc *unifi.Client
-	ls listener.Strategy
+	ls *listener.Listener
 	c  configuration.Provider
 	fs *frontend.Server
 	as *api.Server
@@ -79,21 +82,29 @@ func (d *DefaultRegistry) UnifiClient() *unifi.Client {
 	return d.uc
 }
 
-func (d *DefaultRegistry) Listener() listener.Strategy {
+func (d *DefaultRegistry) Services() []Service {
+	return []Service{
+		d.listener(),
+		d.webApiServer(),
+		d.webFrontendServer(),
+	}
+}
+
+func (d *DefaultRegistry) listener() *listener.Listener {
 	if d.ls == nil {
 		d.ls = listener.New(d, d.c)
 	}
 	return d.ls
 }
 
-func (d *DefaultRegistry) WebFrontendServer() *frontend.Server {
+func (d *DefaultRegistry) webFrontendServer() *frontend.Server {
 	if d.fs == nil {
 		d.fs = frontend.New(d, d.c)
 	}
 	return d.fs
 }
 
-func (d *DefaultRegistry) WebApiServer() *api.Server {
+func (d *DefaultRegistry) webApiServer() *api.Server {
 	if d.as == nil {
 		d.as = api.New(d, d.c)
 	}
