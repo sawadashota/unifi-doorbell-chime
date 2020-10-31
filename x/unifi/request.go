@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/pkg/errors"
+	"golang.org/x/xerrors"
 )
 
 type HttpError struct {
@@ -30,7 +30,7 @@ const defaultRequestTimeout = 3 * time.Second
 func (c *Client) request(ctx context.Context, method string, u *url.URL, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(method, u.String(), body)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, xerrors.Errorf("failed to create new request instance: %w", err)
 	}
 	req.Header = c.authenticatedHeader
 
@@ -57,11 +57,11 @@ func (c *Client) request(ctx context.Context, method string, u *url.URL, body io
 			return nil, err
 
 		case <-ctx.Done():
-			return nil, errors.New("HTTP request cancelled")
+			return nil, xerrors.New("HTTP request cancelled")
 		}
 	}()
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	if res.StatusCode == http.StatusUnauthorized {
@@ -82,7 +82,7 @@ func (c *Client) jsonRequest(ctx context.Context, method string, u *url.URL, par
 	buf := new(bytes.Buffer)
 	if param != nil {
 		if err := json.NewEncoder(buf).Encode(param); err != nil {
-			return errors.WithStack(err)
+			return xerrors.Errorf("failed encode request json to %T: %w", param, err)
 		}
 	}
 
@@ -91,7 +91,7 @@ func (c *Client) jsonRequest(ctx context.Context, method string, u *url.URL, par
 
 	res, err := c.request(timeoutCtx, method, u, buf)
 	if err != nil {
-		return errors.WithStack(err)
+		return xerrors.Errorf(": %w", err)
 	}
 	defer func() {
 		if err := res.Body.Close(); err != nil {
@@ -109,7 +109,7 @@ func (c *Client) jsonRequest(ctx context.Context, method string, u *url.URL, par
 		c.logger.Warnf(err.Error())
 		body, _ := ioutil.ReadAll(res.Body)
 		c.logger.Debugln(string(body))
-		return err
+		return xerrors.Errorf("failed to json request: %w", err)
 	}
 
 	if response == nil {
@@ -117,7 +117,7 @@ func (c *Client) jsonRequest(ctx context.Context, method string, u *url.URL, par
 	}
 
 	if err := json.NewDecoder(res.Body).Decode(response); err != nil {
-		return errors.WithStack(err)
+		return xerrors.Errorf("failed to decode response json to %T: %w", response, err)
 	}
 
 	return nil

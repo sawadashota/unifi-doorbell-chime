@@ -10,6 +10,7 @@ import (
 	"github.com/gobuffalo/packr/v2"
 	"github.com/sawadashota/unifi-doorbell-chime/x/unifi"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/xerrors"
 )
 
 type Server struct {
@@ -92,6 +93,7 @@ func (s *Server) Start(ctx context.Context) error {
 		s.logger.Info("Bye!")
 		return svr.Shutdown(ctx)
 	case err := <-errCh:
-		return err
+		s.logger.Debugf("%+v", err)
+		return xerrors.Errorf("exit frontend server: %w", err)
 	}
 }

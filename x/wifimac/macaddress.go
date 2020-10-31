@@ -3,13 +3,13 @@ package wifimac
 import (
 	"net"
 
-	"github.com/pkg/errors"
+	"golang.org/x/xerrors"
 )
 
 func GetMacAddress() (*net.HardwareAddr, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, xerrors.Errorf(": %w", err)
 	}
 	for _, iface := range ifaces {
 		if iface.Flags&net.FlagUp == 0 {
@@ -20,7 +20,7 @@ func GetMacAddress() (*net.HardwareAddr, error) {
 		}
 		addrs, err := iface.Addrs()
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, xerrors.Errorf(": %w", err)
 		}
 		for _, addr := range addrs {
 			var ip net.IP
@@ -39,10 +39,10 @@ func GetMacAddress() (*net.HardwareAddr, error) {
 			}
 			netInterface, err := net.InterfaceByName(iface.Name)
 			if err != nil {
-				return nil, errors.WithStack(err)
+				return nil, xerrors.Errorf(": %w", err)
 			}
 			return &netInterface.HardwareAddr, nil
 		}
 	}
-	return nil, errors.New("not found network")
+	return nil, xerrors.New("not found network")
 }

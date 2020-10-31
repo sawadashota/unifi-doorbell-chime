@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/xerrors"
 )
 
 const configTemplate = `---
@@ -27,10 +28,10 @@ var initCmd = &cobra.Command{
 	Short: "Generate config file and assets",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := createConfigDir(); err != nil {
-			return err
+			return xerrors.Errorf("failed to create config directory: %w", err)
 		}
 		if err := generateConfigFile(); err != nil {
-			return err
+			return xerrors.Errorf("failed to generate config file: %w", err)
 		}
 
 		fmt.Printf("created %s successfully\n\n", configDir())
@@ -43,10 +44,10 @@ var initCmd = &cobra.Command{
 
 func createConfigDir() error {
 	if _, err := os.Stat(configDir()); err == nil {
-		return fmt.Errorf("%s aleady exist\n", configDir())
+		return xerrors.Errorf("%s already exist", configDir())
 	}
 	if err := os.MkdirAll(configDir(), 0775); err != nil {
-		return fmt.Errorf("failed to create directory at %s. %s\n", configDir(), err)
+		return xerrors.Errorf("failed to create directory at %s. %s", configDir(), err)
 	}
 	return nil
 }
@@ -54,12 +55,12 @@ func createConfigDir() error {
 func generateConfigFile() error {
 	file, err := os.OpenFile(configFilePath(), os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
-		return fmt.Errorf("failed to create config file at %s. %s", configFilePath(), err)
+		return xerrors.Errorf("failed to create config file at %s. %s", configFilePath(), err)
 	}
 	defer file.Close()
 
 	_, err = fmt.Fprint(file, configTemplate)
-	return err
+	return xerrors.Errorf("failed to write config file: %w", err)
 }
 
 func init() {

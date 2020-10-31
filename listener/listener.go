@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/pkg/browser"
-	"github.com/pkg/errors"
 	"github.com/sawadashota/unifi-doorbell-chime/x/unifi"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/xerrors"
 )
 
 type Listener struct {
@@ -38,13 +38,13 @@ func New(r Registry, c Configuration) *Listener {
 func (l *Listener) poll(ctx context.Context) error {
 	ds, err := l.r.UnifiClient().GetDoorbells(ctx)
 	if err != nil {
-		return errors.WithStack(err)
+		return xerrors.Errorf("failed to poll: %w", err)
 	}
 
 	for _, d := range ds {
 		if d.DoesRung(l.state) {
 			if err := l.openURL(&d); err != nil {
-				return errors.WithStack(err)
+				return xerrors.Errorf("failed to open browser: %w", err)
 			}
 
 			l.logger.Infof("%s (%s) is rung!\n", d.Name, d.Mac)
@@ -62,13 +62,13 @@ func (l *Listener) Start(ctx context.Context) error {
 
 	if err := l.r.UnifiClient().Authenticate(); err != nil {
 		l.logger.Error(err)
-		return errors.WithStack(err)
+		return xerrors.Errorf("failed to start listener: %w", err)
 	}
 
 	doorbells, err := l.r.UnifiClient().GetDoorbells(ctx)
 	if err != nil {
 		l.logger.Error(err)
-		return errors.WithStack(err)
+		return xerrors.Errorf("failed to start listener: %w", err)
 	}
 
 	for _, d := range doorbells {
@@ -84,8 +84,8 @@ func (l *Listener) Start(ctx context.Context) error {
 
 		case <-ticker.C:
 			if err := l.poll(ctx); err != nil {
-				l.logger.Error(err)
-				return errors.WithStack(err)
+				l.logger.Debugf("%+v", err)
+				return xerrors.Errorf(": %w", err)
 			}
 		}
 	}
