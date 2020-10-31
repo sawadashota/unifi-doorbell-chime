@@ -8,13 +8,14 @@ import (
 	"syscall"
 	"time"
 
-	"golang.org/x/sync/errgroup"
+	"github.com/sirupsen/logrus"
 
-	"github.com/pkg/errors"
 	"github.com/sawadashota/unifi-doorbell-chime/driver"
 	"github.com/sawadashota/unifi-doorbell-chime/x/wifimac"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/xerrors"
 )
 
 var runCmd = &cobra.Command{
@@ -60,41 +61,43 @@ var runCmd = &cobra.Command{
 			return nil
 		case err := <-errCh:
 			d.Registry().Logger().Debugf("%+v", err)
-			return err
+			return xerrors.Errorf("exit command: %w", err)
 		}
 	},
 }
 
 type instance struct {
-	d driver.Driver
+	d      driver.Driver
+	logger logrus.FieldLogger
 }
 
 func newInstance(d driver.Driver) *instance {
 	return &instance{
-		d: d,
+		d:      d,
+		logger: d.Registry().AppLogger("instance"),
 	}
 }
 
 func (i *instance) bootWithMacAddressObservation(ctx context.Context) error {
 	const checkMacAddressInterval = 1 * time.Minute
 	desired := i.d.Configuration().BootOptionMacAddress()
-	i.d.Registry().Logger().Infof("boot only when mac address is %s", desired)
 
+	i.logger.Infof("boot only when mac address is %s", desired)
 	for {
 		ma, err := wifimac.GetMacAddress()
 		if err != nil {
-			i.d.Registry().Logger().Infof("it seem no network connected. waiting until mac address to be %s", desired)
+			i.logger.Infof("it seem no network connected. waiting until mac address to be %s", desired)
 			time.Sleep(checkMacAddressInterval)
 			continue
 		}
-		if ma.String() == i.d.Configuration().BootOptionMacAddress() {
+		if ma.String() == desired {
 			err := i.boot(ctx)
 			if err == nil {
 				return nil
 			}
 			ma2, err2 := wifimac.GetMacAddress()
 			if err2 != nil {
-				i.d.Registry().Logger().Infof(
+				i.logger.Infof(
 					"listener stopped because no network connected. waiting until mac address to be %s",
 					desired,
 				)
@@ -102,12 +105,11 @@ func (i *instance) bootWithMacAddressObservation(ctx context.Context) error {
 				continue
 			}
 
-			if ma2.String() == i.d.Configuration().BootOptionMacAddress() {
-				return errors.WithMessage(err, "unexpected error occurred")
+			if ma2.String() == desired {
+				return xerrors.Errorf("unexpected error occurred: %w", err)
 			}
 
-			i.d.Registry().Logger().Infof(
-				"listener stopped because current mac address is %s. waiting to be %s",
+			i.logger.Infof("listener stopped because current mac address is %s. waiting to be %s",
 				ma2.String(),
 				desired,
 			)
@@ -115,7 +117,7 @@ func (i *instance) bootWithMacAddressObservation(ctx context.Context) error {
 			continue
 		}
 
-		i.d.Registry().Logger().Infof("current mac address is %s. waiting to be %s", ma.String(), desired)
+		i.logger.Infof("current mac address is %s. waiting to be %s", ma.String(), desired)
 		time.Sleep(checkMacAddressInterval)
 	}
 }
@@ -124,7 +126,7 @@ func (i *instance) boot(ctx context.Context) error {
 	var eg errgroup.Group
 	defer func() {
 		if err := eg.Wait(); err != nil {
-			i.d.Registry().Logger().Error(err)
+			i.logger.Error(err)
 		}
 	}()
 
@@ -136,8 +138,11 @@ func (i *instance) boot(ctx context.Context) error {
 		s := svc
 		eg.Go(func() error {
 			if err := s.Start(ctx); err != nil {
+				if xerrors.Is(err, context.Canceled) {
+					return nil
+				}
 				errCh <- err
-				return err
+				return xerrors.Errorf("unexpected error occurred at %T : %w", s, err)
 			}
 			return nil
 		})
@@ -145,10 +150,10 @@ func (i *instance) boot(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
-		return errors.WithStack(ctx.Err())
+		return nil
 	case err := <-errCh:
 		cancel()
-		return errors.WithStack(err)
+		return xerrors.Errorf("all process canceled: %w", err)
 	}
 }
 

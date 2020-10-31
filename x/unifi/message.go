@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pkg/errors"
+	"golang.org/x/xerrors"
 )
 
 func (c *Client) SetMessage(ctx context.Context, doorbellID string, message string, duration time.Duration) error {
@@ -33,7 +33,7 @@ func (c *Client) SetMessage(ctx context.Context, doorbellID string, message stri
 	}
 
 	if err := c.jsonRequest(ctx, http.MethodPatch, u, param, nil); err != nil {
-		return errors.WithStack(err)
+		return xerrors.Errorf("failed to set message: %w", err)
 	}
 	c.logger.Debugf(`set "%s" as message successfully`, message)
 

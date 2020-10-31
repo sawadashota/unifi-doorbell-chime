@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/pkg/errors"
+	"golang.org/x/xerrors"
 )
 
 func (c *Client) Authenticate() error {
@@ -24,22 +24,26 @@ func (c *Client) Authenticate() error {
 	}
 	var b bytes.Buffer
 	if err := json.NewEncoder(&b).Encode(param); err != nil {
-		return errors.WithStack(err)
+		return xerrors.Errorf("failed to encode request param to %T: %w", param, err)
 	}
 	req, err := http.NewRequest(http.MethodPost, u.String(), &b)
 	if err != nil {
-		return errors.WithStack(err)
+		return xerrors.Errorf("failed to create request instance: %w", err)
 	}
 	req.Header.Add("Content-Type", "application/json")
 	res, err := c.httpclient.Do(req)
 	if err != nil {
-		return errors.WithStack(err)
+		return xerrors.Errorf(": %w", err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		if err := res.Body.Close(); err != nil {
+			c.logger.Error(err)
+		}
+	}()
 
 	token := res.Header.Get("Authorization")
 	if token == "" {
-		return errors.New("could not get Authorization Header from acquireCookie response authenticatedHeader")
+		return xerrors.New("could not get Authorization Header from acquireCookie response authenticatedHeader")
 	}
 
 	header := make(http.Header)

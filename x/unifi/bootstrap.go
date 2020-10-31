@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/pkg/errors"
+	"golang.org/x/xerrors"
 )
 
 type Bootstrap struct {
@@ -393,7 +393,7 @@ type Doorbells []Doorbell
 func (c *Client) GetDoorbells(ctx context.Context) (Doorbells, error) {
 	b, err := c.GetBootstrap(ctx)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, xerrors.Errorf("failed to get doorbells: %w", err)
 	}
 
 	var ds Doorbells
@@ -420,7 +420,7 @@ func (c *Client) GetBootstrap(ctx context.Context) (*Bootstrap, error) {
 
 	var bootstrap Bootstrap
 	if err := c.jsonRequest(ctx, http.MethodGet, u, nil, &bootstrap); err != nil {
-		return nil, errors.WithStack(err)
+		return nil, xerrors.Errorf("failed to get bootstrap: %w", err)
 	}
 	c.logger.Debugln("get bootstrap successfully")
 	return &bootstrap, nil
