@@ -76,6 +76,7 @@ func (l *Listener) Start(ctx context.Context) error {
 	}
 
 	ticker := time.NewTicker(pollingInterval)
+	defer ticker.Stop()
 
 	for {
 		select {

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
@@ -123,9 +122,7 @@ func (c *Client) jsonRequest(ctx context.Context, method string, u *url.URL, par
 			url:     u,
 			method:  method,
 		}
-		c.logger.Warnf(err.Error())
-		body, _ := ioutil.ReadAll(res.Body)
-		c.logger.Debugln(string(body))
+		c.logger.Warn(err)
 		return xerrors.Errorf("failed to json request: %w", err)
 	}
 
