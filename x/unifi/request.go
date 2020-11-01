@@ -21,8 +21,25 @@ type HttpError struct {
 	method  string
 }
 
-func (e *HttpError) Error() string {
+func (e HttpError) Error() string {
 	return fmt.Sprintf("message: %s. code: %d. url: %s", e.message, e.code, e.url.String())
+}
+
+func (e HttpError) Is(target error) bool {
+	_, ok := target.(*HttpError)
+	return ok
+}
+
+func (e HttpError) As(target interface{}) bool {
+	if cast, ok := target.(**HttpError); ok {
+		(*cast).message = e.message
+		return true
+	}
+	return false
+}
+
+func (e HttpError) Code() int {
+	return e.code
 }
 
 const defaultRequestTimeout = 3 * time.Second

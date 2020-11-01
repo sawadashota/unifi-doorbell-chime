@@ -2,13 +2,13 @@ package unifi
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"golang.org/x/xerrors"
 )
 
-func (c *Client) GetSnapshot(ctx context.Context, doorbellID string) ([]byte, error) {
+func (c *Client) GetSnapshot(ctx context.Context, w io.Writer, doorbellID string) error {
 	u := c.baseURL()
 	u.Path = "/api/cameras/" + doorbellID + "/snapshot"
 
@@ -17,17 +17,24 @@ func (c *Client) GetSnapshot(ctx context.Context, doorbellID string) ([]byte, er
 
 	res, err := c.request(timeoutCtx, http.MethodGet, u, nil)
 	if err != nil {
-		return nil, xerrors.Errorf("failed to get snapshot: %w", err)
+		return xerrors.Errorf("failed to get snapshot: %w", err)
 	}
 	defer func() {
 		if err := res.Body.Close(); err != nil {
 			c.logger.Errorln(err)
 		}
 	}()
-	image, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, xerrors.Errorf("failed to read image at once: %w", err)
+
+	if res.StatusCode >= 300 {
+		return &HttpError{
+			message: res.Status,
+			code:    res.StatusCode,
+			url:     u,
+			method:  http.MethodGet,
+		}
 	}
 
-	return image, nil
+	_, _ = io.Copy(w, res.Body)
+
+	return nil
 }

@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/sawadashota/unifi-doorbell-chime/x/unifi"
+	"golang.org/x/xerrors"
 )
 
 func (s *Server) messageTemplateList(w http.ResponseWriter, _ *http.Request) {
@@ -27,14 +29,22 @@ func (s *Server) messageTemplateList(w http.ResponseWriter, _ *http.Request) {
 
 func (s *Server) getSnapshot(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	doorbellID := vars["doorbellID"]
-	image, err := s.r.UnifiClient().GetSnapshot(r.Context(), doorbellID)
-	if err != nil {
-		s.logger.Error(err)
-		w.WriteHeader(http.StatusInternalServerError)
+	doorbellID, ok := vars["doorbellID"]
+	if !ok {
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	_, _ = w.Write(image)
+
+	if err := s.r.UnifiClient().GetSnapshot(r.Context(), w, doorbellID); err != nil {
+		if xerrors.Is(err, &unifi.HttpError{}) {
+			s.logger.Warn(err)
+			w.WriteHeader(err.(*unifi.HttpError).Code())
+			return
+		}
+
+		s.logger.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }
 
 func (s *Server) setMessage(w http.ResponseWriter, r *http.Request) {
