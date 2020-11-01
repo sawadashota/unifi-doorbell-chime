@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-GO := go
+GO := $(or $(GOBIN), go)
 GOTEST := $(or $(GOTEST),$(GO) test)
 CONFIG_FILE := $(or ${CONFIG_FILE}, "contrib/config.yaml")
 BINARY_FILE := unifi-doorbell-chime
@@ -13,7 +13,6 @@ dev: web/build ## start dev
 	$(GO) run main.go start --config $(CONFIG_FILE)
 
 prebuild: web/build ## pre build
-	packr2
 
 build: prebuild ## build for production
 	$(GO) build -o $(BINARY_FILE) .
@@ -25,13 +24,11 @@ web/build: ## build web frontend
 	$(NPM) run build --prefix $(NPM_PREFIX)
 
 clean: ## clean built and dependencies
-	packr2 clean
 	rm $(BINARY_FILE)
-	rm -rf ./web/node_modules ./web/build
+	rm -rf ./web/frontend/node_modules ./web/frontend/static
 
 install: ## install dependencies
 	$(GO) mod download -x
-	$(GO) install github.com/gobuffalo/packr/v2/packr2
 	$(NPM) install --prefix $(NPM_PREFIX)
 
 test : go/test npm/test ## Run all tests
@@ -55,6 +52,18 @@ npm/lint: ## check lint node code
 
 npm/format: ## format node code
 	$(NPM) run format --prefix $(NPM_PREFIX)
+
+go/version: ## print Go version
+	$(GO) version
+
+go/tidy: ## print Go version
+	$(GO) mod tidy
+
+Tag=
+release: ## Release by goreleaser
+	git tag ${Tag}
+	git push origin ${Tag}
+	goreleaser --rm-dist
 
 # https://gist.github.com/tadashi-aikawa/da73d277a3c1ec6767ed48d1335900f3
 .PHONY: $(shell grep -h -E '^[a-zA-Z_-]+:' $(MAKEFILE_LIST) | sed 's/://')

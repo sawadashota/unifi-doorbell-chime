@@ -8,10 +8,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/sawadashota/unifi-doorbell-chime/driver"
 	"github.com/sawadashota/unifi-doorbell-chime/x/wifimac"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/sync/errgroup"
@@ -33,11 +32,6 @@ var runCmd = &cobra.Command{
 		d := driver.NewDefaultDriver()
 		i := newInstance(d)
 
-		// wait for Ctrl-C
-		sigCh := make(chan os.Signal, 2)
-		signal.Notify(sigCh, os.Interrupt)
-		signal.Notify(sigCh, syscall.SIGTERM)
-
 		var eg errgroup.Group
 		defer func() {
 			if err := eg.Wait(); err != nil {
@@ -45,8 +39,8 @@ var runCmd = &cobra.Command{
 			}
 		}()
 
-		ctx, cancel := context.WithCancel(cmd.Context())
-		defer cancel()
+		ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
 
 		errCh := make(chan error, 1)
 		eg.Go(func() error {
@@ -57,7 +51,7 @@ var runCmd = &cobra.Command{
 		})
 
 		select {
-		case <-sigCh:
+		case <-ctx.Done():
 			return nil
 		case err := <-errCh:
 			d.Registry().Logger().Debugf("%+v", err)
