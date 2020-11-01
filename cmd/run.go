@@ -73,47 +73,65 @@ func newInstance(d driver.Driver) *instance {
 }
 
 func (i *instance) bootWithMacAddressObservation(ctx context.Context) error {
-	const checkMacAddressInterval = 1 * time.Minute
 	desired := i.d.Configuration().BootOptionMacAddress()
 
 	i.logger.Infof("boot only when mac address is %s", desired)
 	for {
-		ma, err := wifimac.GetMacAddress()
-		if err != nil {
-			i.logger.Infof("it seem no network connected. waiting until mac address to be %s", desired)
-			time.Sleep(checkMacAddressInterval)
-			continue
+		if i.isDesiredMacAddress() {
+			if err := i.checkWorthToContinue(i.boot(ctx)); err != nil {
+				if xerrors.Is(err, complete) {
+					return nil
+				}
+				return err
+			}
 		}
-		if ma.String() == desired {
-			err := i.boot(ctx)
-			if err == nil {
-				return nil
-			}
-			ma2, err2 := wifimac.GetMacAddress()
-			if err2 != nil {
-				i.logger.Infof(
-					"listener stopped because no network connected. waiting until mac address to be %s",
-					desired,
-				)
-				time.Sleep(checkMacAddressInterval)
-				continue
-			}
-
-			if ma2.String() == desired {
-				return xerrors.Errorf("unexpected error occurred: %w", err)
-			}
-
-			i.logger.Infof("listener stopped because current mac address is %s. waiting to be %s",
-				ma2.String(),
-				desired,
-			)
-			time.Sleep(checkMacAddressInterval)
-			continue
-		}
-
-		i.logger.Infof("current mac address is %s. waiting to be %s", ma.String(), desired)
-		time.Sleep(checkMacAddressInterval)
+		time.Sleep(1 * time.Minute)
 	}
+}
+
+func (i *instance) isDesiredMacAddress() bool {
+	desired := i.d.Configuration().BootOptionMacAddress()
+
+	ma, err := wifimac.GetMacAddress()
+	if err != nil {
+		i.logger.Infof("it seem no network connected. waiting until mac address to be %s", desired)
+		return false
+	}
+	if ma.String() != desired {
+		i.logger.Infof("current mac address is %s. waiting to be %s", ma.String(), desired)
+		return false
+	}
+	return true
+}
+
+var (
+	complete = xerrors.New("complete successfully")
+)
+
+func (i *instance) checkWorthToContinue(err error) error {
+	desired := i.d.Configuration().BootOptionMacAddress()
+
+	if err == nil {
+		return complete
+	}
+	ma2, err2 := wifimac.GetMacAddress()
+	if err2 != nil {
+		i.logger.Infof(
+			"listener stopped because no network connected. waiting until mac address to be %s",
+			desired,
+		)
+		return nil
+	}
+
+	if ma2.String() == desired {
+		return xerrors.Errorf("unexpected error occurred: %w", err)
+	}
+
+	i.logger.Infof("listener stopped because current mac address is %s. waiting to be %s",
+		ma2.String(),
+		desired,
+	)
+	return nil
 }
 
 func (i *instance) boot(ctx context.Context) error {
@@ -136,7 +154,7 @@ func (i *instance) boot(ctx context.Context) error {
 					return nil
 				}
 				errCh <- err
-				return xerrors.Errorf("unexpected error occurred at %T : %w", s, err)
+				return xerrors.Errorf("an error occurred at %T : %w", s, err)
 			}
 			return nil
 		})
