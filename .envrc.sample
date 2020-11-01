@@ -1,0 +1,4 @@
+export GOBIN=
+export GOROOT=
+export PATH=$GOROOT/bin:$PATH
+export GITHUB_TOKEN=

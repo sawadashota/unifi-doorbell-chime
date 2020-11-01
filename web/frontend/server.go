@@ -3,21 +3,57 @@ package frontend
 import (
 	"bytes"
 	"context"
+	"embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"net/http"
+	"path/filepath"
 
-	"github.com/gobuffalo/packr/v2"
 	"github.com/sawadashota/unifi-doorbell-chime/x/unifi"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/xerrors"
 )
 
+//go:embed static
+var static embed.FS
+
+type staticFS struct {
+	s embed.FS
+}
+
+func newStaticFS() *staticFS {
+	return &staticFS{
+		s: static,
+	}
+}
+
+func (f *staticFS) Open(name string) (fs.File, error) {
+	return f.s.Open(f.resolvePath(name))
+}
+
+func (f *staticFS) ReadFile(name string) ([]byte, error) {
+	return f.s.ReadFile(f.resolvePath(name))
+}
+
+func (f *staticFS) exist(name string) bool {
+	file, err := f.s.Open(f.resolvePath(name))
+	if err != nil {
+		return false
+	}
+	_ = file.Close()
+	return true
+}
+
+func (f *staticFS) resolvePath(name string) string {
+	return filepath.Join("static", name)
+}
+
 type Server struct {
 	r      Registry
 	c      Configuration
-	static *packr.Box
 	logger logrus.FieldLogger
+	static *staticFS
 }
 
 type Registry interface {
@@ -35,8 +71,8 @@ func New(r Registry, c Configuration) *Server {
 	return &Server{
 		r:      r,
 		c:      c,
-		static: packr.New("static files", "./build"),
 		logger: r.AppLogger("frontend"),
+		static: newStaticFS(),
 	}
 }
 
@@ -60,16 +96,17 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := s.static.Find(r.URL.Path); err == nil {
-		http.FileServer(s.static).ServeHTTP(w, r)
+	if s.static.exist(r.URL.Path) {
+		http.FileServer(http.FS(s.static)).ServeHTTP(w, r)
 		return
 	}
 
-	if b, err := s.static.Find("index.html"); err == nil {
+	if b, err := s.static.ReadFile("index.html"); err == nil {
 		w.Header().Add("Content-Type", "text/html")
 		_, _ = w.Write(b)
 		return
 	}
+
 	s.logger.Errorf("cannot serve %s", r.URL.Path)
 	w.WriteHeader(http.StatusInternalServerError)
 }
