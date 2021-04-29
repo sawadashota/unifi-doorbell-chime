@@ -9,44 +9,54 @@ import (
 	"io/fs"
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	"github.com/sawadashota/unifi-doorbell-chime/x/unifi"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/xerrors"
 )
 
-//go:embed static
-var static embed.FS
+var (
+	//go:embed static/*
+	static embed.FS
 
-type staticFS struct {
-	s embed.FS
-}
+	public fs.FS
+)
 
-func newStaticFS() *staticFS {
-	return &staticFS{
-		s: static,
+func init() {
+	var err error
+	public, err = fs.Sub(static, "static")
+	if err != nil {
+		panic(err)
 	}
 }
 
-func (f *staticFS) Open(name string) (fs.File, error) {
-	return f.s.Open(f.resolvePath(name))
+type staticFS struct {
+	logger logrus.FieldLogger
+}
+
+func newStaticFS(r Registry) *staticFS {
+	return &staticFS{
+		logger: r.AppLogger("EmbedFileSystem"),
+	}
 }
 
 func (f *staticFS) ReadFile(name string) ([]byte, error) {
-	return f.s.ReadFile(f.resolvePath(name))
+	return fs.ReadFile(public, name)
 }
 
 func (f *staticFS) exist(name string) bool {
-	file, err := f.s.Open(f.resolvePath(name))
+	v := strings.SplitN(name, "/", 2)
+	if len(v) != 2 {
+		f.logger.Errorf("invalid path: %s", name)
+		return false
+	}
+	file, err := public.Open(v[1])
 	if err != nil {
 		return false
 	}
 	_ = file.Close()
 	return true
-}
-
-func (f *staticFS) resolvePath(name string) string {
-	return filepath.Join("static", name)
 }
 
 type Server struct {
@@ -72,7 +82,7 @@ func New(r Registry, c Configuration) *Server {
 		r:      r,
 		c:      c,
 		logger: r.AppLogger("frontend"),
-		static: newStaticFS(),
+		static: newStaticFS(r),
 	}
 }
 
@@ -97,18 +107,20 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if s.static.exist(r.URL.Path) {
-		http.FileServer(http.FS(s.static)).ServeHTTP(w, r)
+		http.FileServer(http.FS(public)).ServeHTTP(w, r)
 		return
 	}
 
-	if b, err := s.static.ReadFile("index.html"); err == nil {
-		w.Header().Add("Content-Type", "text/html")
-		_, _ = w.Write(b)
-		return
+	if filepath.Ext(r.URL.Path) == "html" || filepath.Ext(r.URL.Path) == "" {
+		if b, err := fs.ReadFile(public, "index.html"); err == nil {
+			w.Header().Add("Content-Type", "text/html")
+			_, _ = w.Write(b)
+			return
+		}
 	}
 
-	s.logger.Errorf("cannot serve %s", r.URL.Path)
-	w.WriteHeader(http.StatusInternalServerError)
+	s.logger.Warnf("%s is not found", r.URL.Path)
+	w.WriteHeader(http.StatusNotFound)
 }
 
 func (s *Server) Start(ctx context.Context) error {

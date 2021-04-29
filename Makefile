@@ -9,10 +9,27 @@ BINARY_FILE := unifi-doorbell-chime
 NPM := npm
 NPM_PREFIX := web/frontend
 
-dev: web/build ## start dev
-	$(GO) run main.go start --config $(CONFIG_FILE)
+GOBIN := $(abspath .bin)
+export PATH := $(GOBIN):${PATH}
 
-prebuild: web/build ## pre build
+GO_DEPENDENCIES = github.com/cosmtrek/air@v1.15.1 \
+				  github.com/golangci/golangci-lint/cmd/golangci-lint@v1.39.0
+
+define make-go-dependency
+  # go install is responsible for not re-building when the code hasn't changed
+  .bin/$(firstword $(subst @, ,$(notdir $1))): go.mod go.sum Makefile
+		GOBIN=$(GOBIN) go install $1
+endef
+$(foreach dep, $(GO_DEPENDENCIES), $(eval $(call make-go-dependency, $(dep))))
+$(call make-lint-dependency)
+
+.PHONY: air
+air: .bin/air ## start hot reload server
+	CONFIG_FILE=${CONFIG_FILE} air -c .air.toml
+
+dev: web-build air ## start dev
+
+prebuild: web-build ## pre build
 
 build: prebuild ## build for production
 	$(GO) build -o $(BINARY_FILE) .
@@ -20,7 +37,7 @@ build: prebuild ## build for production
 start: build ## exec built binary
 	./$(BINARY_FILE) start --config $(CONFIG_FILE)
 
-web/build: ## build web frontend
+web-build: ## build web frontend
 	$(NPM) run build --prefix $(NPM_PREFIX)
 
 clean: ## clean built and dependencies
@@ -28,35 +45,35 @@ clean: ## clean built and dependencies
 	rm -rf ./web/frontend/node_modules ./web/frontend/static
 
 install: ## install dependencies
-	$(GO) mod download -x
+	$(GO) mod download
 	$(NPM) install --prefix $(NPM_PREFIX)
 
-test : go/test npm/test ## Run all tests
+test : go-test npm-test ## Run all tests
 
-go/test: ## run go test
+go-test: ## run go test
 	$(GOTEST) -v -cover ./...
 
-npm/test: ## run npm test
+npm-test: ## run npm test
 	$(NPM) run test --prefix $(NPM_PREFIX)
 
-npm/dev: ## start npm dev server
+npm-dev: ## start npm dev server
 	$(NPM) start --prefix $(NPM_PREFIX)
 
-lint: go/lint npm/lint ## check lint
+lint: go-lint npm-lint ## check lint
 
-go/lint: ## check lint Go code
+go-lint: .bin/golangci-lint ## check lint Go code
 	golangci-lint run
 
-npm/lint: ## check lint node code
+npm-lint: ## check lint node code
 	$(NPM) run lint --prefix $(NPM_PREFIX)
 
-npm/format: ## format node code
+npm-format: ## format node code
 	$(NPM) run format --prefix $(NPM_PREFIX)
 
-go/version: ## print Go version
+go-version: ## print Go version
 	$(GO) version
 
-go/tidy: ## print Go version
+go-tidy: ## print Go version
 	$(GO) mod tidy
 
 Tag=

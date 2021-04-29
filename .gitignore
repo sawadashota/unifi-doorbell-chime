@@ -1,5 +1,8 @@
+.bin
+
 contrib/config.yaml
 unifi-doorbell-chime
 
 dist
 *-packr.go
+tmp
