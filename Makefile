@@ -13,7 +13,8 @@ GOBIN := $(abspath .bin)
 export PATH := $(GOBIN):${PATH}
 
 GO_DEPENDENCIES = github.com/cosmtrek/air@v1.15.1 \
-				  github.com/golangci/golangci-lint/cmd/golangci-lint@v1.39.0
+				  github.com/golangci/golangci-lint/cmd/golangci-lint@v1.39.0 \
+				  github.com/goreleaser/goreleaser@v0.164.0
 
 define make-go-dependency
   # go install is responsible for not re-building when the code hasn't changed
@@ -77,7 +78,7 @@ go-tidy: ## print Go version
 	$(GO) mod tidy
 
 Tag=
-release: ## Release by goreleaser
+release: .bin/goreleaser ## Release by goreleaser
 	git tag ${Tag}
 	git push origin ${Tag}
 	goreleaser --rm-dist

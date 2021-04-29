@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
+
 	"github.com/pkg/browser"
 	"github.com/sawadashota/unifi-doorbell-chime/x/unifi"
 	"github.com/sirupsen/logrus"
@@ -60,12 +62,25 @@ const pollingInterval = 1 * time.Second
 func (l *Listener) Start(ctx context.Context) error {
 	defer l.logger.Info("Bye!")
 
-	if err := l.r.UnifiClient().Authenticate(); err != nil {
-		l.logger.Error(err)
-		return xerrors.Errorf("failed to start listener: %w", err)
-	}
+	bc := backoff.NewExponentialBackOff()
+	bc.MaxElapsedTime = time.Minute * 5
+	bc.Reset()
 
-	doorbells, err := l.r.UnifiClient().GetDoorbells(ctx)
+	var doorbells unifi.Doorbells
+	err := backoff.Retry(func() error {
+		if err := l.r.UnifiClient().Authenticate(); err != nil {
+			l.logger.Error(err)
+			return xerrors.Errorf("failed to start listener: %w", err)
+		}
+
+		var err error
+		doorbells, err = l.r.UnifiClient().GetDoorbells(ctx)
+		if err != nil {
+			l.logger.Error(err)
+			return xerrors.Errorf("failed to start listener: %w", err)
+		}
+		return nil
+	}, bc)
 	if err != nil {
 		l.logger.Error(err)
 		return xerrors.Errorf("failed to start listener: %w", err)
