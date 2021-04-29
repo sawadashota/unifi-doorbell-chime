@@ -9,23 +9,7 @@ module.exports = {
         '@prefresh/snowpack',
         '@snowpack/plugin-typescript',
     ],
-    install: [
-        /* ... */
-    ],
-    installOptions: {
-        /* ... */
-    },
-    devOptions: {
-        /* ... */
-    },
     buildOptions: {
         out: 'static'
-    },
-    proxy: {
-        /* ... */
-    },
-
-    alias: {
-        /* ... */
     },
 };
