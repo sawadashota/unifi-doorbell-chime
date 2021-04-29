@@ -3,6 +3,7 @@ module github.com/sawadashota/unifi-doorbell-chime
 go 1.16
 
 require (
+	github.com/cenkalti/backoff/v4 v4.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/gorilla/mux v1.8.0
