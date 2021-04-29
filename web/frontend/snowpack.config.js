@@ -10,6 +10,6 @@ module.exports = {
         '@snowpack/plugin-typescript',
     ],
     buildOptions: {
-        out: 'static'
+        out: 'static',
     },
 };
