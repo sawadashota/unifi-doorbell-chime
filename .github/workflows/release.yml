@@ -3,10 +3,7 @@ name: goreleaser
 on:
   release:
     types:
-      - released
-      - prereleased
       - created
-      - published
 
 jobs:
   goreleaser:
