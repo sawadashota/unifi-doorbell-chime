@@ -46,6 +46,7 @@ clean: ## clean built and dependencies
 
 install: ## install dependencies
 	$(GO) mod download
+	$(GO) mod tidy
 	$(NPM) install --prefix $(NPM_PREFIX)
 
 test : go-test npm-test ## Run all tests
