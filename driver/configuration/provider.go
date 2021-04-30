@@ -8,8 +8,8 @@ type Provider interface {
 	UnifiUsername() string
 	UnifiPassword() string
 
-	WebPort() uint64
-	ApiPort() uint64
+	WebPort() int
+	ApiPort() int
 
 	MessageList() []string
 

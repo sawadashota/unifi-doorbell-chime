@@ -23,7 +23,7 @@ type Registry interface {
 }
 
 type Configuration interface {
-	ApiPort() uint64
+	ApiPort() int
 	MessageList() []string
 }
 

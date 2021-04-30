@@ -72,8 +72,8 @@ type Registry interface {
 }
 
 type Configuration interface {
-	WebPort() uint64
-	ApiPort() uint64
+	WebPort() int
+	ApiPort() int
 	MessageList() []string
 }
 

@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"github.com/phayes/freeport"
 	"github.com/spf13/viper"
 )
 
@@ -30,14 +31,6 @@ func getString(key string, defaultValue string) string {
 		return defaultValue
 	}
 	return v
-}
-
-func getUnit64(key string, defaultValue uint64) uint64 {
-	v := viper.Get(key)
-	if v == nil {
-		return defaultValue
-	}
-	return viper.GetUint64(key)
 }
 
 func getBool(key string, defaultValue bool) bool {
@@ -72,12 +65,26 @@ func (v *ViperProvider) UnifiPassword() string {
 	return viper.GetString(viperUnifiPassword)
 }
 
-func (v *ViperProvider) WebPort() uint64 {
-	return getUnit64(viperWebPort, 33319)
+func (v *ViperProvider) WebPort() int {
+	port := viper.GetInt(viperWebPort)
+	if port == 0 {
+		port, _ := freeport.GetFreePort()
+		viper.Set(viperWebPort, port)
+		return v.WebPort()
+	}
+
+	return port
 }
 
-func (v *ViperProvider) ApiPort() uint64 {
-	return getUnit64(viperApiPort, 33320)
+func (v *ViperProvider) ApiPort() int {
+	port := viper.GetInt(viperApiPort)
+	if port == 0 {
+		port, _ := freeport.GetFreePort()
+		viper.Set(viperApiPort, port)
+		return v.ApiPort()
+	}
+
+	return port
 }
 
 func (v *ViperProvider) MessageList() []string {
