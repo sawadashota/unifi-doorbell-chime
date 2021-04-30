@@ -1,5 +1,12 @@
 # Changelog
 
+### [0.1.8](https://www.github.com/sawadashota/unifi-doorbell-chime/compare/v0.1.7...v0.1.8) (2021-04-30)
+
+
+### Bug Fixes
+
+* Goreleaser trigger ([#34](https://www.github.com/sawadashota/unifi-doorbell-chime/issues/34)) ([eb978a9](https://www.github.com/sawadashota/unifi-doorbell-chime/commit/eb978a94f9c92cca012df0cd7ee75cf882ce7f21))
+
 ### [0.1.7](https://www.github.com/sawadashota/unifi-doorbell-chime/compare/v0.1.6...v0.1.7) (2021-04-30)
 
 
