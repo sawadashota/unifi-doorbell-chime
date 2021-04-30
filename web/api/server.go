@@ -23,7 +23,7 @@ type Registry interface {
 }
 
 type Configuration interface {
-	ApiPort() uint64
+	APIPort() int
 	MessageList() []string
 }
 
@@ -43,13 +43,13 @@ func (s *Server) Start(ctx context.Context) error {
 	m.HandleFunc("/message/set", s.setMessage).Methods(http.MethodPost)
 	m.HandleFunc("/message/templates", s.messageTemplateList).Methods(http.MethodGet)
 	svr := &http.Server{
-		Addr:    fmt.Sprintf(":%d", s.c.ApiPort()),
+		Addr:    fmt.Sprintf(":%d", s.c.APIPort()),
 		Handler: m,
 	}
 
 	errCh := make(chan error, 1)
 	go func() {
-		s.logger.Infof("start API server. 127.0.0.1:%d", s.c.ApiPort())
+		s.logger.Infof("start API server. 127.0.0.1:%d", s.c.APIPort())
 		if err := svr.ListenAndServe(); err != nil {
 			errCh <- err
 		}

@@ -26,7 +26,7 @@ type Registry interface {
 }
 
 type Configuration interface {
-	WebPort() uint64
+	WebPort() int
 }
 
 func New(r Registry, c Configuration) *Listener {
