@@ -88,9 +88,9 @@ func New(r Registry, c Configuration) *Server {
 
 func (s *Server) handleWellKnownConfiguration(w http.ResponseWriter, _ *http.Request) {
 	res := struct {
-		ApiEndpoint string `json:"api_endpoint"`
+		APIEndpoint string `json:"api_endpoint"`
 	}{
-		ApiEndpoint: fmt.Sprintf("http://127.0.0.1:%d", s.c.APIPort()),
+		APIEndpoint: fmt.Sprintf("http://127.0.0.1:%d", s.c.APIPort()),
 	}
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(&res); err != nil {
