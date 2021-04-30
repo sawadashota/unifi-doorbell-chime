@@ -2,8 +2,6 @@ name: goreleaser
 
 on:
   release:
-    types:
-      - created
 
 jobs:
   goreleaser:
