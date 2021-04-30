@@ -12,4 +12,5 @@ jobs:
         with:
           release-type: simple
           default-branch: main
+          fork: true
           bump-minor-pre-major: yes
