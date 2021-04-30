@@ -5,6 +5,7 @@ on:
     types:
       - released
       - prereleased
+      - created
 
 jobs:
   goreleaser:
