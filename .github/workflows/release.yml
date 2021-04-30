@@ -6,6 +6,7 @@ on:
       - released
       - prereleased
       - created
+      - published
 
 jobs:
   goreleaser:
