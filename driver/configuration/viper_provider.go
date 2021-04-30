@@ -18,7 +18,7 @@ const (
 	viperUnifiPassword      = "unifi.password"
 
 	viperWebPort = "web.port"
-	viperApiPort = "api.port"
+	viperAPIPort = "api.port"
 
 	viperMessageTemplates = "message.templates"
 
@@ -76,12 +76,12 @@ func (v *ViperProvider) WebPort() int {
 	return port
 }
 
-func (v *ViperProvider) ApiPort() int {
-	port := viper.GetInt(viperApiPort)
+func (v *ViperProvider) APIPort() int {
+	port := viper.GetInt(viperAPIPort)
 	if port == 0 {
 		port, _ := freeport.GetFreePort()
-		viper.Set(viperApiPort, port)
-		return v.ApiPort()
+		viper.Set(viperAPIPort, port)
+		return v.APIPort()
 	}
 
 	return port

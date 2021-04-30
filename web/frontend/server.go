@@ -73,7 +73,7 @@ type Registry interface {
 
 type Configuration interface {
 	WebPort() int
-	ApiPort() int
+	APIPort() int
 	MessageList() []string
 }
 
@@ -90,7 +90,7 @@ func (s *Server) handleWellKnownConfiguration(w http.ResponseWriter, _ *http.Req
 	res := struct {
 		ApiEndpoint string `json:"api_endpoint"`
 	}{
-		ApiEndpoint: fmt.Sprintf("http://127.0.0.1:%d", s.c.ApiPort()),
+		ApiEndpoint: fmt.Sprintf("http://127.0.0.1:%d", s.c.APIPort()),
 	}
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(&res); err != nil {

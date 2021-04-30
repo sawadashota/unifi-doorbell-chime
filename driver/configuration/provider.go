@@ -9,7 +9,7 @@ type Provider interface {
 	UnifiPassword() string
 
 	WebPort() int
-	ApiPort() int
+	APIPort() int
 
 	MessageList() []string
 
